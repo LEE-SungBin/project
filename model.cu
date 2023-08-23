@@ -241,7 +241,9 @@ static void conv2d(Tensor *in_t, Tensor *out_t, Tensor *weight_t,
   const int total_threads = out_size;
   const int max_threads_per_block = 1024;
 
+  // * Size of Thread Blocks
   dim3 block_dim(max_threads_per_block);
+  // * Number of Thread Blocks
   dim3 grid_dim((int) (total_threads + block_dim.x - 1) / block_dim.x);
 
   // * Launch kernel on GPU
@@ -264,14 +266,14 @@ static void conv2d(Tensor *in_t, Tensor *out_t, Tensor *weight_t,
 
 static void instancenorm2d(Tensor *in_t, Tensor *out_t, Tensor *weight_t,
                            Tensor *bias_t) {
-  float *in = in_t->buf;
-  float *out = out_t->buf;
-  float *weight = weight_t->buf;
-  float *bias = bias_t->buf;
+  float *in = in_t->buf; // * [C, H, W]
+  float *out = out_t->buf; // * [C, H, W]
+  float *weight = weight_t->buf; // * [C]
+  float *bias = bias_t->buf; // * [C]
 
-  int C = in_t->shape[0]; //=out_t->shape[0];
-  int H = in_t->shape[1]; //=out_t->shape[1];
-  int W = in_t->shape[2]; //=out_t->shape[2];
+  const int C = in_t->shape[0]; //=out_t->shape[0];
+  const int H = in_t->shape[1]; //=out_t->shape[1];
+  const int W = in_t->shape[2]; //=out_t->shape[2];
 
   for (int c = 0; c < C; c++) {
     float e = 0, v = 0;
@@ -300,14 +302,55 @@ static void instancenorm2d(Tensor *in_t, Tensor *out_t, Tensor *weight_t,
       }
     }
   }
+
+  // // * Initialize tensors
+  // const int in_size = C * H * W;
+  // const int out_size = C * H * W;
+  // const int weight_size = C;
+  // const int bias_size = C;
+
+  // CHECK_CUDA(cudaMalloc(&in_gpu, in_size * sizeof(float)));
+  // CHECK_CUDA(cudaMalloc(&out_gpu, out_size * sizeof(float)));
+  // CHECK_CUDA(cudaMalloc(&weight_gpu, weight_size * sizeof(float)));
+  // CHECK_CUDA(cudaMalloc(&bias_gpu, bias_size * sizeof(float)));
+  // CHECK_CUDA(cudaDeviceSynchronize());
+
+  // // * Upload in, weight, and bias tensors on GPU
+  // CHECK_CUDA(cudaMemcpy(in_gpu, in, in_size * sizeof(float), cudaMemcpyHostToDevice));
+  // CHECK_CUDA(cudaMemcpy(weight_gpu, weight, weight_size * sizeof(float), cudaMemcpyHostToDevice));
+  // CHECK_CUDA(cudaMemcpy(bias_gpu, bias, bias_size * sizeof(float), cudaMemcpyHostToDevice));
+
+  // // * get grid and block dimension
+  // const int total_threads = out_size;
+  // const int max_threads_per_block = 1024;
+
+  // dim3 block_dim(max_threads_per_block);
+  // dim3 grid_dim((int) (total_threads + block_dim.x - 1) / block_dim.x);
+
+  // // * Launch kernel on GPU
+  // conv2d_kernel<<<grid_dim, block_dim>>>(
+  //   in_gpu, out_gpu, weight_gpu, bias_gpu, 
+  //   C_IN, H_IN, W_IN, C_OUT, H_OUT, W_OUT, K);
+  // CHECK_CUDA(cudaGetLastError());
+
+  // // * Download out from GPU
+  // CHECK_CUDA(cudaMemcpy(out, out_gpu, out_size * sizeof(float), cudaMemcpyDeviceToHost));
+  // CHECK_CUDA(cudaDeviceSynchronize());
+
+  // // * clean up tensors
+  // CHECK_CUDA(cudaFree(in_gpu));
+  // CHECK_CUDA(cudaFree(out_gpu));
+  // CHECK_CUDA(cudaFree(weight_gpu));
+  // CHECK_CUDA(cudaFree(bias_gpu));
+  // CHECK_CUDA(cudaDeviceSynchronize());
 }
 
 static void linear(Tensor *in_t, Tensor *out_t, Tensor *weight_t,
                    Tensor *bias_t) {
-  float *in = in_t->buf;
-  float *out = out_t->buf;
-  float *weight = weight_t->buf;
-  float *bias = bias_t->buf;
+  float *in = in_t->buf; // * [N, H_IN]
+  float *out = out_t->buf; // * [N, H_OUT]
+  float *weight = weight_t->buf; /// * [H_OUT, H_IN]
+  float *bias = bias_t->buf; // * [H_OUT]
 
   int H_IN = weight_t->shape[0];  // in_t의 마지막 차원
   int H_OUT = weight_t->shape[1]; // out_t의 마지막 차원
